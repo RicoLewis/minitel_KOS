@@ -87,8 +87,8 @@ def Telnet (b):
 		if b == 130 and NLi == 1:				#NEW-PAGE
 			NLi = 0
 			NL = False
-			ser.write(b"\x1B\x5B\x32\x4A")
-			ser.write(b"\x1B\x5B\x31\x3B\x31\x48")
+			ser.write(b"\x1B\x5B\x32\x4A")			#cmde d'effacement écran Minitel
+			ser.write(b"\x1B\x5B\x31\x3B\x31\x48")		#cmde de déplacement curseur Minitel Pos x1y1
 		return None
 	elif b == 238:
 		NL = True
@@ -98,7 +98,7 @@ def Telnet (b):
 		if CR:
 			if b == 10:							#Line Feed
 				CR = False
-				ser.write(b"\x0D\x1B\x5B\x42")
+				ser.write(b"\x0D\x1B\x5B\x42")		#CR + cmde de déplacement curseur Minitel vers le bas
 			return None
 		elif b == 1:
 			return None
@@ -120,8 +120,9 @@ time.sleep(3)
 
 
 ser.open()
-ser.write(b"\x1B\x5B\x32\x4A")
-ser.write(b"\x1B\x5B\x31\x3B\x31\x48")
+ser.write(b"\x11")				#cmde d'affichage du curseur Minitel
+ser.write(b"\x1B\x5B\x32\x4A")			#cmde d'effacement écran Minitel
+ser.write(b"\x1B\x5B\x31\x3B\x31\x48")		#cmde de déplacement curseur Minitel Pos x1y1
 
 timeout=socket._GLOBAL_DEFAULT_TIMEOUT
 
@@ -130,7 +131,7 @@ sock = socket.create_connection(("127.0.0.1", 5410), timeout)
 CMD = False
 data = False
 
-FILE=open("G:\\output.txt", "a")
+FILE=open("G:\\output.txt", "a")		#Fichier de LOG
 
 while True:
 	try:
@@ -155,7 +156,7 @@ while True:
 				
 	
 	while ser.inWaiting() > 0:
-		b = ord(ser.read(1))								# defini b en tant que valeur decimale du byte recus
+		b = ord(ser.read(1))
 		print "ser : "#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 		print b#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 		if CMD :
