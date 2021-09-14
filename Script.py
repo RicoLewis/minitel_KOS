@@ -1,7 +1,13 @@
+"""
+TODO :
+Ajouter un comteur de position x pour éviter les doubles saut de ligne
+"""
+
 import time
 import sys
 import socket
 import serial
+import binascii
 
 timeout=socket._GLOBAL_DEFAULT_TIMEOUT
 
@@ -11,20 +17,24 @@ ser.bytesize = 7
 ser.parity = 'E'
 ser.port = 'COM6'
 
-IAC = False	#Bool de commande IAC Byte  - 255
-DO = False	#Bool de commande DO Byte   - 253
+IAC = False		#Bool de commande IAC Byte  - 255
+DO = False		#Bool de commande DO Byte   - 253
 WILL = False	#Bool de commande WILL Byte - 251
-SB = False	#Bool de commande SB Byte   - 250
-NL = False	#Bool de Mise en page Byte  - 238
-CR = False	#Bool de commande CR Byte   - 13
+SB = False		#Bool de commande SB Byte   - 250
+NL = False		#Bool de Mise en page Byte  - 238
+DC = False		#Bool de depl curseur Byte  - 134
+CR = False		#Bool de commande CR Byte   - 13
 ECHO = False	#Bool de commande ECHO Byte - 1
-SBi = 0		#Int d'état de la cmde de subnégociation
-NLi = 0		#Int d'état de la cmde de mise en page
-
+SBi = 0			#Int d'etat de la cmde de subnegociation
+NLi = 0			#Int d'etat de la cmde de mise en page
+x = 0
+y = 0
+HexString = ""
 
 def Telnet (b):
 	global IAC, WILL, SB, DO, ECHO, CR, NL
-	global SBi, NLi
+	global SBi, NLi,x ,y
+	global HexString
 	if IAC == False and b == 255:
 		IAC = True			
 		print ">IAC"
@@ -78,17 +88,31 @@ def Telnet (b):
 		WILL = False
 		return None
 	elif NL:
-		if b == 128:
+		if b == 128 and NLi == 0:
 			NLi = 1
-		if b == 134 and NLi == 1:				#RETOUR ARRIERE
+			FILE.write('-NL1-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+		elif b == 134 and NLi == 1:				#Deplacement curseur
+			DC = True
+			NLi = 2
+			FILE.write('-NL2-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+		elif b == 130 and NLi == 1:				#NEW-PAGE
 			NLi = 0
 			NL = False
-			#ser.write(b"\x0D\x1B\x5B\x42")
-		if b == 130 and NLi == 1:				#NEW-PAGE
-			NLi = 0
+			ser.write(b"\x1B\x5B\x32\x4A")			#cmde d'effacement ecran Minitel
+			ser.write(b"\x1B\x5B\x31\x3B\x31\x48")		#cmde de deplacement curseur Minitel Pos x1y1
+		elif NLi == 2:
+			x = b
+			NLi = 3
+			FILE.write('-NL3-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+		elif NLi == 3:
+			y = b
+			#HexString = "1b5b"+str(y+31)+"3b"+str(x+31)+"48"
+			HexString = "1b5b"+str(hex(y+49)[2:])+"3b"+str(hex(x+49)[2:])+"48"
+			ser.write(binascii.unhexlify(HexString))
 			NL = False
-			ser.write(b"\x1B\x5B\x32\x4A")			#cmde d'effacement écran Minitel
-			ser.write(b"\x1B\x5B\x31\x3B\x31\x48")		#cmde de déplacement curseur Minitel Pos x1y1
+			NLi = 0
+			FILE.write('-NL4-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+			FILE.write(HexString)#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 		return None
 	elif b == 238:
 		NL = True
@@ -98,7 +122,7 @@ def Telnet (b):
 		if CR:
 			if b == 10:							#Line Feed
 				CR = False
-				ser.write(b"\x0D\x1B\x5B\x42")		#CR + cmde de déplacement curseur Minitel vers le bas
+				ser.write(b"\x0D\x1B\x5B\x42")		#CR + cmde de deplacement curseur Minitel vers le bas
 			return None
 		elif b == 1:
 			return None
@@ -121,8 +145,8 @@ time.sleep(3)
 
 ser.open()
 ser.write(b"\x11")				#cmde d'affichage du curseur Minitel
-ser.write(b"\x1B\x5B\x32\x4A")			#cmde d'effacement écran Minitel
-ser.write(b"\x1B\x5B\x31\x3B\x31\x48")		#cmde de déplacement curseur Minitel Pos x1y1
+ser.write(b"\x1B\x5B\x32\x4A")			#cmde d'effacement ecran Minitel
+ser.write(b"\x1B\x5B\x31\x3B\x31\x48")		#cmde de deplacement curseur Minitel Pos x1y1
 
 timeout=socket._GLOBAL_DEFAULT_TIMEOUT
 
@@ -152,7 +176,7 @@ while True:
 			#print b
 			if Telnet(b) != None :
 				ser.write(chr(b))
-				print b#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+				print b#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 				
 	
 	while ser.inWaiting() > 0:
