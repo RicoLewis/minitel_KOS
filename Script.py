@@ -11,15 +11,15 @@ ser.bytesize = 7
 ser.parity = 'E'
 ser.port = 'COM6'
 
-IAC = False
-WILL = False
-SB = False
-DO = False
-ECHO = False
-CR = False
-NL = False
-SBi = 0
-NLi = 0
+IAC = False	#Bool de commande IAC Byte  - 255
+DO = False	#Bool de commande DO Byte   - 253
+WILL = False	#Bool de commande WILL Byte - 251
+SB = False	#Bool de commande SB Byte   - 250
+NL = False	#Bool de Mise en page Byte  - 238
+CR = False	#Bool de commande CR Byte   - 13
+ECHO = False	#Bool de commande ECHO Byte - 1
+SBi = 0		#Int d'état de la cmde de subnégociation
+NLi = 0		#Int d'état de la cmde de mise en page
 
 
 def Telnet (b):
@@ -69,7 +69,7 @@ def Telnet (b):
 		DO = False
 		return None
 	#----------------------------------------FONCTIONS WILL-----------------------------------------------------+
-  elif WILL:
+	elif WILL:
 		if b == 1:								#ECHO
 			sock.send(b"\xFF\xFB\x01")			#255-251-1
 			WILL = False
@@ -96,17 +96,25 @@ def Telnet (b):
 		FILE.write('-NL-')
 	else :		
 		if CR:
-			if b == 10:
+			if b == 10:							#Line Feed
 				CR = False
 				ser.write(b"\x0D\x1B\x5B\x42")
 			return None
 		elif b == 1:
 			return None
-		elif b == 13:
+		elif b == 13:							#Carriage Return
 			CR = True
 			return None
 		else :
 			return b
+
+		
+
+
+
+
+
+
 
 time.sleep(3)
 
