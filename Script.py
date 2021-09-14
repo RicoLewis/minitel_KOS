@@ -35,28 +35,28 @@ def Telnet (b):
 		if b == 250:							#SB - Subnegotiation of the indicated option follows.
 			SB = True
 			SBi = 0
-			print ">SB"
-			FILE.write('-SB-')
+			print ">SB"#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+			FILE.write('-SB-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 		elif b == 251:							#WILL - Indicates the desire to begin performing, or confirmation that you are now performing, the indicated option.
 			WILL = True
-			print ">WILL"
-			FILE.write('-WILL-')
+			print ">WILL"#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+			FILE.write('-WILL-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 		elif b == 253:							#DO - Indicates the request that the other party perform, or confirmation that you are expecting the other party to perform, the indicated option.
 			DO = True
-			print ">DO"
-			FILE.write('-DO-')
+			print ">DO"#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+			FILE.write('-DO-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 		IAC = False
 		return None
 	#----------------------------------------FONCTIONS SB-------------------------------------------------------+
 	elif SB:
 		if b == 24:								#Terminal Type
 			SBi = 24
-			FILE.write('-SBi-')
+			FILE.write('-SBi-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 		elif b == 240:							#SE - End of subnegotiation parameters.
 			if SBi == 24:
 				sock.send(b"\xFF\xFA\x18\x00\x4D\x49\x4E\x49\x54\x45\x4C\xFF\xF0")
 				         #   255-250-024-000- M - I - N - I - T - E - L -
-				FILE.write('-SE-')
+				FILE.write('-SE-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 			SB = False
 			IAC = False
 		return None
@@ -73,8 +73,8 @@ def Telnet (b):
 		if b == 1:								#ECHO
 			sock.send(b"\xFF\xFB\x01")			#255-251-1
 			WILL = False
-			print ">ECHO"
-			FILE.write('-ECHO-')
+			print ">ECHO"#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+			FILE.write('-ECHO-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 		WILL = False
 		return None
 	elif NL:
@@ -92,8 +92,8 @@ def Telnet (b):
 		return None
 	elif b == 238:
 		NL = True
-		print ">NL"
-		FILE.write('-NL-')
+		print ">NL"#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+		FILE.write('-NL-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 	else :		
 		if CR:
 			if b == 10:							#Line Feed
@@ -145,19 +145,19 @@ while True:
 	else:
 		for t in bufferT:
 			b = ord(t)
-			FILE.write(str(b))
-			FILE.write('.')
+			FILE.write(str(b))#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+			FILE.write('.')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 			#print "Telnet : "
 			#print b
 			if Telnet(b) != None :
 				ser.write(chr(b))
-				print b
+				print b#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 				
 	
 	while ser.inWaiting() > 0:
 		b = ord(ser.read(1))								# defini b en tant que valeur decimale du byte recus
-		print "ser : "
-		print b
+		print "ser : "#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+		print b#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 		if CMD :
 			if b == 65:
 				sock.send(b'\x0D')
