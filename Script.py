@@ -1,6 +1,6 @@
 """
 TODO :
-Ajouter un comteur de position x pour éviter les doubles saut de ligne
+Ajouter un compteur de position x du curseur pour éviter les doubles saut de ligne
 """
 
 import time
