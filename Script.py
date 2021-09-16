@@ -1,13 +1,13 @@
-"""
-TODO :
-Ajouter un compteur de position x du curseur pour éviter les doubles saut de ligne
-"""
-
 import time
 import sys
 import socket
 import serial
 import binascii
+
+"""
+TODO :
+OK - Ajouter un comteur de position x pour eviter les doubles saut de ligne
+"""
 
 timeout=socket._GLOBAL_DEFAULT_TIMEOUT
 
@@ -17,24 +17,30 @@ ser.bytesize = 7
 ser.parity = 'E'
 ser.port = 'COM6'
 
-IAC = False		#Bool de commande IAC Byte  - 255
-DO = False		#Bool de commande DO Byte   - 253
-WILL = False	#Bool de commande WILL Byte - 251
-SB = False		#Bool de commande SB Byte   - 250
-NL = False		#Bool de Mise en page Byte  - 238
-DC = False		#Bool de depl curseur Byte  - 134
-CR = False		#Bool de commande CR Byte   - 13
-ECHO = False	#Bool de commande ECHO Byte - 1
+IAC = False		#Bool de commande IAC Byte		- 255
+DO = False		#Bool de commande DO Byte		- 253
+WILL = False	#Bool de commande WILL Byte		- 251
+SB = False		#Bool de commande SB Byte		- 250
+NL = False		#Bool de Mise en page Byte		- 238
+ACC = False		#Bool de Saisie d'accent Byte	- 195
+DC = False		#Bool de depl curseur Byte		- 134
+CR = False		#Bool de commande CR Byte		- 13
+ECHO = False	#Bool de commande ECHO Byte		- 1
 SBi = 0			#Int d'etat de la cmde de subnegociation
 NLi = 0			#Int d'etat de la cmde de mise en page
 x = 0
+xa = 0
+xb = 0
 y = 0
+ya = 0
+yb = 0
 HexString = ""
 
 def Telnet (b):
-	global IAC, WILL, SB, DO, ECHO, CR, NL
-	global SBi, NLi,x ,y
+	global IAC, WILL, SB, DO, ECHO, CR, NL, ACC
+	global SBi, NLi,x , xa, xb ,y , ya, yb
 	global HexString
+	
 	if IAC == False and b == 255:
 		IAC = True			
 		print ">IAC"
@@ -98,39 +104,69 @@ def Telnet (b):
 		elif b == 130 and NLi == 1:				#NEW-PAGE
 			NLi = 0
 			NL = False
-			ser.write(b"\x1B\x5B\x32\x4A")			#cmde d'effacement ecran Minitel
-			ser.write(b"\x1B\x5B\x31\x3B\x31\x48")		#cmde de deplacement curseur Minitel Pos x1y1
+			ser.write(b"\x1B\x5B\x32\x4A")				#cmde d'effacement ecran Minitel
+			ser.write(b"\x1B\x5B\x48")					#cmde de deplacement curseur Minitel Pos x1y1
+			x=0
+			y=0
+		elif b == 148 and NLi == 1:				#SCROLLING BAS
+			NLi = 0
+			NL = False
+			ser.write(b"\x1B\x5B\x48")					#cmde de deplacement curseur Minitel Pos x1y1
+			ser.write(b"\x1B\x5B\x4D")					#cmde de suppression de la premiere ligne avec decallage haut
 		elif NLi == 2:
-			x = b
+			x = b+1
+			xa = x/10
+			xb = x-xa*10
 			NLi = 3
 			FILE.write('-NL3-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 		elif NLi == 3:
-			y = b
-			#HexString = "1b5b"+str(y+31)+"3b"+str(x+31)+"48"
-			HexString = "1b5b"+str(hex(y+49)[2:])+"3b"+str(hex(x+49)[2:])+"48"
+			y = b+1
+			ya = y/10
+			yb = y-ya*10
+			HexString = "1b5b"+str(ya+30)+str(yb+30)+"3b"+str(xa+30)+str(xb+30)+"48"
 			ser.write(binascii.unhexlify(HexString))
 			NL = False
 			NLi = 0
 			FILE.write('-NL4-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 			FILE.write(HexString)#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
 		return None
+	elif ACC:
+		if b == 169:
+			ser.write(b"\x19\x42\x65")					#E accent aigue
+		ACC = False
+		return None
 	elif b == 238:
 		NL = True
-		print ">NL"#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
-		FILE.write('-NL-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+		print ">NL"#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+		FILE.write('-NL-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+		return None
+	elif b == 195:
+		ACC = True
+		print ">ACC"#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+		FILE.write('-ACC-')#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LOG
+		return None
 	else :		
 		if CR:
-			if b == 10:							#Line Feed
+			if b == 10 and x <= 40:							#Line Feed
 				CR = False
 				ser.write(b"\x0D\x1B\x5B\x42")		#CR + cmde de deplacement curseur Minitel vers le bas
+				x = 0
+				y += 1
 			return None
 		elif b == 1:
 			return None
 		elif b == 13:							#Carriage Return
 			CR = True
 			return None
-		else :
+		elif b >= 32 and b <= 126:
 			return b
+			if x == 40:
+				x = 0
+				y += 1
+			else:
+				x += 1
+		else:
+			return None
 
 		
 
